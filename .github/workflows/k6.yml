@@ -17,9 +17,6 @@ jobs:
       run: docker pull grafana/k6
 
     - name: Run k6 load test, capture report
-      run: docker run -i grafana/k6 run - <k6tests/perf1.js > k6report.txt
-
-    - uses: actions/upload-artifact@v4
-      with:
-        name: k6report
-        path: k6report.txt
+      env:
+        K6_CLOUD_TOKEN: ${{secrets.k6_cloud_token}}
+      run: docker run -i -e K6_CLOUD_TOKEN=$k6_cloud_token grafana/k6 run --out cloud ./perf1.js 

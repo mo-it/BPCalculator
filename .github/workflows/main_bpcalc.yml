@@ -4,9 +4,7 @@
 name: Build and deploy ASP.Net Core app to Azure Web App - BPCalc
 
 on:
-  push:
-    branches:
-      - main
+  workflow_call:
   workflow_dispatch:
 
 jobs:
@@ -62,4 +60,5 @@ jobs:
           app-name: 'BPCalc'
           slot-name: 'Production'
           package: .
+
           

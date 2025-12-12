@@ -8,7 +8,16 @@ env:
   URI: https://bpcalc-dqdzd2c5e9h0cvg3.francecentral-01.azurewebsites.net/     
   
 on:
-  workflow_dispatch:                  # manually triggered
+
+  # Run CD after CI finishes
+
+  workflow_run:
+
+    workflows: ["Build and deploy ASP.Net Core app to Azure Web App - BPCalc"]     
+
+    types:
+
+      - completed                  # manually triggered
 
 jobs:
 

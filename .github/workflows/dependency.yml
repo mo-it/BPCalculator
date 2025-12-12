@@ -4,7 +4,11 @@
 name: OWASP Dependency Checker       
   
 on:
-  workflow_dispatch:                  # manually triggered
+  # Run CD after CI finishes
+  workflow_run:
+    workflows: ["CI Pipeline"]     
+    types:
+      - completed
 
 jobs:
   dependency_check:

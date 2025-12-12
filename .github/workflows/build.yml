@@ -46,14 +46,7 @@ jobs:
           /p:CoverletOutput=coverage/ \
           /p:CoverletOutputFormat=opencover \
           /p:Threshold=80
-    - name: SonarCloud Begin Analysis
-      run: |
-        dotnet sonarscanner begin \
-          /k:"BPCalculator" \
-          /o:"mo-git" \
-          /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
-          /d:sonar.coverage.exclusions="**/Program.cs,**/Startup.cs,**/Pages/**,bp-load-test.js" \
-          /d:sonar.cs.opencover.reportsPaths="TestReports/coverage.xml"
+  
     # -------------------------
     # Run BDD Tests (Reqnroll)
     # Test project discovers and runs its Reqnroll bindings

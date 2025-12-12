@@ -66,7 +66,7 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'BPCalc'
-          slot-name: 'bpcalc-staging'
+          slot-name: 'Production'
           package: .
 
           

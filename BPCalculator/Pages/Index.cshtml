@@ -7,14 +7,16 @@
 
 <h4>BP Category Calculator</h4>
 <hr />
+
 <div class="row">
     <div class="col-md-4">
         <form method="post" id="form1">
+
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
             <div class="form-group">
                 <label asp-for="BP.Systolic" class="control-label"></label>
-                <input asp-for="BP.Systolic" class="form-control"/>
+                <input asp-for="BP.Systolic" class="form-control" />
                 <span asp-validation-for="BP.Systolic" class="text-danger"></span>
             </div>
 
@@ -25,38 +27,35 @@
             </div>
 
             <div class="form-group">
-                <input type="submit" value="Submit" class="btn btn-default" />
+                <input type="submit" value="Submit" class="btn btn-primary" />
             </div>
 
-            @* Color-coded BP category *@
-            @if (ViewData.ModelState.IsValid)
+            @* Show result only after POST and when model is valid *@
+            @if (HttpContext.Request.Method == "POST" && ViewData.ModelState.IsValid)
             {
-                @{
-                    // Determine color based on category
-                    var color = Model.BP.Category switch
-                    {
-                        BPCalculator.BPCategory.High => "danger",
-                        BPCalculator.BPCategory.PreHigh => "warning",
-                        BPCalculator.BPCategory.Ideal => "success",
-                        BPCalculator.BPCategory.Low => "primary",
-                        _ => "secondary"
-                    };
-                }
+                var color = Model.BP.Category switch
+                {
+                    BPCalculator.BPCategory.High => "danger",
+                    BPCalculator.BPCategory.PreHigh => "warning",
+                    BPCalculator.BPCategory.Ideal => "success",
+                    BPCalculator.BPCategory.Low => "primary",
+                    _ => "secondary"
+                };
 
                 <div class="alert alert-@color mt-3" style="font-size:1.2rem; padding:15px;">
-                    Your BP Category is: <strong>@Model.BP.Category</strong>
+                    Your BP Category is: <strong>@Model.BP.CategoryDisplay</strong>
                 </div>
 
-                @* Optional: show pulse pressure below *@
                 <div class="form-group mt-2">
                     <label>Pulse Pressure:</label>
                     <span>@Model.BP.PulsePressure mmHg</span>
                 </div>
             }
+
         </form>
     </div>
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <partial name="_ValidationScriptsPartial" />
 }

@@ -3,7 +3,10 @@ name: CI Pipeline
 on:
   workflow_dispatch:
   workflow_call:
-
+  push:
+    branches:
+      - main
+      - dev
 jobs:
   build-test-analyze:
     runs-on: ubuntu-latest

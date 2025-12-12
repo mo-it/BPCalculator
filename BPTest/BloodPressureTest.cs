@@ -7,67 +7,89 @@ namespace BPCalculator.Tests
     [TestClass]
     public class BloodPressureTests
     {
-        // ---------- Out of Range Tests ----------
+        // ---------- Out of Range Tests (STRICT) ----------
         [TestMethod]
         [ExpectedException(typeof(ArgumentOutOfRangeException))]
-        public void Category_Throws_WhenSystolicTooLow()
+        public void GetCategoryOrThrow_Throws_WhenSystolicTooLow()
         {
             var bp = new BloodPressure { Systolic = 60, Diastolic = 70 };
-            var category = bp.Category;
+            _ = bp.GetCategoryOrThrow();
         }
 
         [TestMethod]
         [ExpectedException(typeof(ArgumentOutOfRangeException))]
-        public void Category_Throws_WhenDiastolicTooHigh()
+        public void GetCategoryOrThrow_Throws_WhenSystolicTooHigh()
+        {
+            var bp = new BloodPressure { Systolic = 200, Diastolic = 80 };
+            _ = bp.GetCategoryOrThrow();
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentOutOfRangeException))]
+        public void GetCategoryOrThrow_Throws_WhenDiastolicTooLow()
+        {
+            var bp = new BloodPressure { Systolic = 120, Diastolic = 30 };
+            _ = bp.GetCategoryOrThrow();
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentOutOfRangeException))]
+        public void GetCategoryOrThrow_Throws_WhenDiastolicTooHigh()
         {
             var bp = new BloodPressure { Systolic = 120, Diastolic = 150 };
-            var category = bp.Category;
+            _ = bp.GetCategoryOrThrow();
         }
 
-        // ---------- High Blood Pressure Tests ----------
-        [TestMethod]
-        public void Category_ReturnsHigh_WhenSystolicHigh()
+        // ---------- High ----------
+        [DataTestMethod]
+        [DataRow(140, 70)]
+        [DataRow(120, 90)]
+        [DataRow(160, 95)]
+        public void Category_ReturnsHigh(int systolic, int diastolic)
         {
-            var bp = new BloodPressure { Systolic = 150, Diastolic = 70 };
+            var bp = new BloodPressure { Systolic = systolic, Diastolic = diastolic };
             Assert.AreEqual(BPCategory.High, bp.Category);
         }
 
-        [TestMethod]
-        public void Category_ReturnsHigh_WhenDiastolicHigh()
+        // ---------- PreHigh ----------
+        [DataTestMethod]
+        [DataRow(130, 70)]
+        [DataRow(125, 85)]
+        [DataRow(119, 82)]
+        public void Category_ReturnsPreHigh(int systolic, int diastolic)
         {
-            var bp = new BloodPressure { Systolic = 120, Diastolic = 95 };
-            Assert.AreEqual(BPCategory.High, bp.Category);
-        }
-
-        // ---------- Pre-High Tests ----------
-        [TestMethod]
-        public void Category_ReturnsPreHigh_WhenSystolicBetween120And139()
-        {
-            var bp = new BloodPressure { Systolic = 130, Diastolic = 70 };
+            var bp = new BloodPressure { Systolic = systolic, Diastolic = diastolic };
             Assert.AreEqual(BPCategory.PreHigh, bp.Category);
         }
 
-        [TestMethod]
-        public void Category_ReturnsPreHigh_WhenDiastolicBetween80And89()
+        // ---------- Ideal ----------
+        [DataTestMethod]
+        [DataRow(100, 70)]
+        [DataRow(118, 65)]
+        [DataRow(90, 60)]
+        public void Category_ReturnsIdeal(int systolic, int diastolic)
         {
-            var bp = new BloodPressure { Systolic = 110, Diastolic = 85 };
-            Assert.AreEqual(BPCategory.PreHigh, bp.Category);
-        }
-
-        // ---------- Ideal Tests ----------
-        [TestMethod]
-        public void Category_ReturnsIdeal_WhenInIdealRange()
-        {
-            var bp = new BloodPressure { Systolic = 110, Diastolic = 70 };
+            var bp = new BloodPressure { Systolic = systolic, Diastolic = diastolic };
             Assert.AreEqual(BPCategory.Ideal, bp.Category);
         }
 
-        // ---------- Low Tests ----------
-        [TestMethod]
-        public void Category_ReturnsLow_WhenBelowIdealRange()
+        // ---------- Low ----------
+        [DataTestMethod]
+        [DataRow(85, 55)]
+        [DataRow(75, 45)]
+        [DataRow(89, 59)]
+        public void Category_ReturnsLow(int systolic, int diastolic)
         {
-            var bp = new BloodPressure { Systolic = 80, Diastolic = 55 };
+            var bp = new BloodPressure { Systolic = systolic, Diastolic = diastolic };
             Assert.AreEqual(BPCategory.Low, bp.Category);
+        }
+
+        // ---------- Pulse Pressure ----------
+        [TestMethod]
+        public void PulsePressure_IsCalculatedCorrectly()
+        {
+            var bp = new BloodPressure { Systolic = 120, Diastolic = 80 };
+            Assert.AreEqual(40, bp.PulsePressure);
         }
     }
 }

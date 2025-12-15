@@ -1,22 +1,25 @@
-# simple workflow to run k6 load test using a docker container
 name: k6 BMI
 
 on:
-  workflow_dispatch:                  # manually triggered
+  workflow_dispatch:
 
 jobs:
-
   k6_load_test:
-
     runs-on: ubuntu-latest
 
+    env:
+      BASE_URL: "https://bpcalc-dqdzd2c5e9h0cvg3.francecentral-01.azurewebsites.net"
+
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Pull Docker image for k6
-      run: docker pull grafana/k6
+      - name: Pull k6 Docker image
+        run: docker pull grafana/k6
 
-    - name: Run k6 load test, capture report
-      env:
-        K6_CLOUD_TOKEN: ${{secrets.k6_cloud_token}}
-      run: docker run -i -e K6_CLOUD_TOKEN=$k6_cloud_token grafana/k6 run --out cloud /k6/perf1.js 
+      - name: Run k6 load test
+        run: |
+          docker run --rm \
+            -e BASE_URL="${BASE_URL}" \
+            -v "${{ github.workspace }}/k6:/scripts:ro" \
+            grafana/k6 run /scripts/perf1.js

@@ -120,17 +120,18 @@ jobs:
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_98C447C2CF1545B78E862A7693B1B71F }}
 
 
-      - name: Swap STAGING -> PRODUCTION
-        shell: pwsh
-        run: |
-          Write-Host "Swapping slot '${{ env.STAGING_SLOT }}' into production for app '${{ env.APP_NAME }}'..."
-          az webapp deployment slot swap `
-            --resource-group "$env:RESOURCE_GROUP" `
-            --name "${{ env.APP_NAME }}" `
-            --slot "${{ env.STAGING_SLOT }}" `
-            --target-slot production
+- name: Swap STAGING -> PRODUCTION
+  shell: pwsh
+  run: |
+    Write-Host "Swapping slot '${{ env.STAGING_SLOT }}' into production..."
+    az webapp deployment slot swap `
+      --resource-group "${{ env.RESOURCE_GROUP }}" `
+      --name "${{ env.APP_NAME }}" `
+      --slot "${{ env.STAGING_SLOT }}" `
+      --target-slot production
 
-          Write-Host "Slot swap complete"
+    Write-Host "Slot swap completed successfully"
+
 
   e2e_production:
     runs-on: windows-latest

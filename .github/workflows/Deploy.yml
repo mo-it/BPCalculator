@@ -1,59 +1,65 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy ASP.Net Core app to Azure Web App - BPCalc
+name: Build, Deploy to Staging, E2E Test, and Slot Swap - BPCalc
 
 on:
-
-  # Run CD after CI finishes
-
   workflow_run:
-
-    workflows: ["OWASP Dependency Checker"]     
-
+    workflows: ["OWASP Dependency Checker"]
     types:
-
       - completed
- 
+
+env:
+  APP_NAME: "BPCalc"
+  STAGING_SLOT: "staging"
+  STAGING_URL: "https://bpcalc-staging.azurewebsites.net"
+  PROD_URL: "https://bpcalc.azurewebsites.net"
+  # A simple UI marker to validate the app loaded
+  EXPECTED_TEXT: "BP Category Calculator"
+
 jobs:
   build:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: windows-latest
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up .NET Core
+      - name: Set up .NET 9
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.x'
+          dotnet-version: "9.x"
 
-      - name: Build with dotnet
-        run: dotnet build --configuration Release
+      - name: Restore
+        run: dotnet restore
 
-      - name: dotnet publish
-        run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
 
-      - name: Upload artifact for deployment job
+      - name: Publish
+        run: dotnet publish -c Release -o "${{ env.DOTNET_ROOT }}\\myapp"
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          path: ${{ env.DOTNET_ROOT }}\\myapp
 
-  deploy:
+  deploy_staging:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: windows-latest
     needs: build
     permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
+      id-token: write
+      contents: read
 
     steps:
-      - name: Download artifact from build job
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: .net-app
-      
+          path: .
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -61,12 +67,85 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_F2B807843585494E9DC7239855658C1E }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_98C447C2CF1545B78E862A7693B1B71F }}
 
-      - name: Deploy to Azure Web App
-        id: deploy-to-webapp
+      - name: Deploy to STAGING slot
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'BPCalc'
-          slot-name: 'staging'
+          app-name: ${{ env.APP_NAME }}
+          slot-name: ${{ env.STAGING_SLOT }}
           package: .
 
-          
+  e2e_staging:
+    runs-on: windows-latest
+    needs: deploy_staging
+    steps:
+      - name: E2E smoke test (staging)
+        shell: pwsh
+        run: |
+          $url = "${{ env.STAGING_URL }}"
+          Write-Host "Testing staging URL: $url"
+
+          $resp = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 90
+          if ($resp.StatusCode -ne 200) { throw "Staging returned HTTP $($resp.StatusCode)" }
+
+          $expected = "${{ env.EXPECTED_TEXT }}"
+          if ($resp.Content -notmatch [regex]::Escape($expected)) {
+            throw "Staging page did not contain expected text: '$expected'"
+          }
+
+          Write-Host "Staging E2E smoke test passed"
+
+  swap_to_production:
+    runs-on: windows-latest
+    needs: e2e_staging
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_94473A8A0547441E82D64FF8923CBB8C }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_F2B807843585494E9DC7239855658C1E }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_98C447C2CF1545B78E862A7693B1B71F }}
+
+      - name: Detect resource group
+        id: rg
+        shell: pwsh
+        run: |
+          $rg = az webapp show --name "${{ env.APP_NAME }}" --query resourceGroup -o tsv
+          if (-not $rg) { throw "Could not detect resource group for app ${{ env.APP_NAME }}" }
+          echo "RESOURCE_GROUP=$rg" >> $env:GITHUB_ENV
+          Write-Host "Detected Resource Group: $rg"
+
+      - name: Swap STAGING -> PRODUCTION
+        shell: pwsh
+        run: |
+          Write-Host "Swapping slot '${{ env.STAGING_SLOT }}' into production for app '${{ env.APP_NAME }}'..."
+          az webapp deployment slot swap `
+            --resource-group "$env:RESOURCE_GROUP" `
+            --name "${{ env.APP_NAME }}" `
+            --slot "${{ env.STAGING_SLOT }}" `
+            --target-slot production
+
+          Write-Host "Slot swap complete"
+
+  e2e_production:
+    runs-on: windows-latest
+    needs: swap_to_production
+    steps:
+      - name: E2E smoke test (production)
+        shell: pwsh
+        run: |
+          $url = "${{ env.PROD_URL }}"
+          Write-Host "Testing production URL: $url"
+
+          $resp = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 90
+          if ($resp.StatusCode -ne 200) { throw "Production returned HTTP $($resp.StatusCode)" }
+
+          $expected = "${{ env.EXPECTED_TEXT }}"
+          if ($resp.Content -notmatch [regex]::Escape($expected)) {
+            throw "Production page did not contain expected text: '$expected'"
+          }
+
+          Write-Host "Production E2E smoke test passed"

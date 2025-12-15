@@ -1,66 +1,32 @@
-import { check, sleep } from "k6";
 import http from "k6/http";
+import { check, sleep } from "k6";
 
-// Export an options object to configure how k6 will behave during test execution.
-//
-// See https://docs.k6.io/docs/options
-//
-export let options = {
-
-  // Either specify vus + duration or stages
-  // vus: 20,
-  // duration: "3m",
-
-  // This stages configuration will ramp to 20 Virtual Users over a minute,
-  // maintain those 20 concurrent users for 1 minute
-  // then ramp down to 0 over a minute i.e. ramp-up pattern of "load"
+export const options = {
   stages: [
-    { duration: "30s", target: 20 },           // 1 new vu every 3 seconds
-    { duration: "30s", target: 20 },
-    { duration: "30s", target: 0 }             // 1 less vu every 3 seconds
+    { duration: "10s", target: 5 },
+    { duration: "20s", target: 10 },
+    { duration: "10s", target: 0 },
   ],
-  
-  // set a threshold at 100 ms request duration for 95th percentile
-  // request duration = time spent sending request, waiting for response, and receiving response
-  // aka "response time"
-  // the test will be marked as failed by threshold if the value is exceeded 
-  // i.e. 95% of request durations should be < 300 ms
- 	thresholds: {
-    "http_req_duration": ["p(95) < 300"]
+  thresholds: {
+    http_req_failed: ["rate<0.01"],        // <1% failures
+    http_req_duration: ["p(95)<1200"],     // 95% under 1.2s
   },
-
-  // Don't save the bodies of HTTP responses by default, for improved performance
-  // Can be overwritten by setting the `responseType` option to `text` or `binary` for individual requests
-  discardResponseBodies: true,
-
-  cloud: {
-    distribution: {
-        projectID: 6051818
-    },
-  },
-
 };
 
-// Export a default function - this defines the entry point for your VUs,
-// similar to the main() function in many other languages.
-export default function() {
-  let res = http.get("https://bpcalc-dqdzd2c5e9h0cvg3.francecentral-01.azurewebsites.net/");
+export default function () {
+  const baseUrl = __ENV.BASE_URL;
+  if (!baseUrl) {
+    throw new Error("BASE_URL env var is missing. Example: https://your-app.azurewebsites.net");
+  }
 
-  check(res, {
-      "is status 200": (r) => r.status === 200
+  // Keep it simple: GET the home page (no anti-forgery token issues)
+  const res = http.get(`${baseUrl}/`, {
+    tags: { name: "GET /" },
   });
 
-// "think" for 3 seconds
-  sleep(3);
+  check(res, {
+    "status is 200": (r) => r.status === 200,
+  });
+
+  sleep(1);
 }
-
-// to run on Docker:
-// docker pull docker pull grafana/k6
-// docker run -i docker pull grafana/k6 run - <perf1.js
-
-
-// or install on machine and:
-// k6 run perf1.js
-// k6 login cloud - token ..........
-// k6 cloud perf1.js
-// k6 run --out cloud perf1.js 

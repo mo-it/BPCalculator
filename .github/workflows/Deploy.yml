@@ -15,6 +15,15 @@ env:
   # A simple UI marker to validate the app loaded
   EXPECTED_TEXT: "BP Category Calculator"
 
+  env:
+  APP_NAME: "BPCalc"
+  RESOURCE_GROUP: "CSD"
+  STAGING_SLOT: "staging"
+  STAGING_URL: "https://bpcalc-staging-bgftgdg0g0a5f5cx.francecentral-01.azurewebsites.net"
+  PROD_URL: "https://bpcalc-bgftgdg0g0a5f5cx.francecentral-01.azurewebsites.net"
+  EXPECTED_TEXT: "BP Category Calculator"
+
+
 jobs:
   build:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
@@ -110,14 +119,6 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_F2B807843585494E9DC7239855658C1E }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_98C447C2CF1545B78E862A7693B1B71F }}
 
-      - name: Detect resource group
-        id: rg
-        shell: pwsh
-        run: |
-          $rg = az webapp show --name "${{ env.APP_NAME }}" --query resourceGroup -o tsv
-          if (-not $rg) { throw "Could not detect resource group for app ${{ env.APP_NAME }}" }
-          echo "RESOURCE_GROUP=$rg" >> $env:GITHUB_ENV
-          Write-Host "Detected Resource Group: $rg"
 
       - name: Swap STAGING -> PRODUCTION
         shell: pwsh

@@ -9,8 +9,9 @@ on:
 env:
   APP_NAME: "BPCalc"
   STAGING_SLOT: "staging"
-  STAGING_URL: "https://bpcalc-staging.azurewebsites.net"
-  PROD_URL: "https://bpcalc.azurewebsites.net"
+  STAGING_URL: "https://bpcalc-staging-bgftgdg0g0a5f5cx.francecentral-01.azurewebsites.net"
+  PROD_URL: "https://bpcalc-bgftgdg0g0a5f5cx.francecentral-01.azurewebsites.net"
+
   # A simple UI marker to validate the app loaded
   EXPECTED_TEXT: "BP Category Calculator"
 
